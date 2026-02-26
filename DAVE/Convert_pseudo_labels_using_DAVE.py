@@ -51,7 +51,6 @@ except Exception:
 ROOT_DATA_DIR = Path("dataset")
 
 MODEL_PATH = Path(r"pretrained")
-
 K_SHOT = 3                 # 0 / 1 / 3
 TWO_PASSES = False
 GPU_ID = 0                 # GPU id
