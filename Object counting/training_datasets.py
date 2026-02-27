@@ -335,3 +335,4 @@ class RealRankDataset(Dataset):
             raise ValueError(f"local_counts must be 16, got {local.shape} for {img_name}")
 
         return img, torch.tensor(global_count, dtype=torch.float32), torch.from_numpy(local), img_name
+
