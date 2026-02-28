@@ -17,7 +17,7 @@ batch_size = 128
 num_classes = 45
 num_epochs = 400
 
-#数据增强
+#Data augmentation
 data_transforms = {
     'train': transforms.Compose([
         transforms.RandomResizedCrop(224),
@@ -43,6 +43,7 @@ data_transforms = {
 }
 
 
+# Helper function for this experiment module
 def create_datasets_from_split(data_dir, split_path):
     full_dataset = datasets.ImageFolder(data_dir)
     split_data = np.load(split_path)
@@ -62,7 +63,7 @@ def create_datasets_from_split(data_dir, split_path):
     return train_dataset, val_dataset, test_dataset, full_dataset.classes
 
 
-#加载数据
+#Load datasets
 train_dataset, val_dataset, test_dataset, class_names = create_datasets_from_split(data_dir, split_path)
 
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)

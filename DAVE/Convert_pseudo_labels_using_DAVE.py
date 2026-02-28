@@ -46,7 +46,7 @@ except Exception:
     pass
 
 
-#配置区
+#Configuration section
 
 ROOT_DATA_DIR = Path("dataset")
 
@@ -60,6 +60,7 @@ SKIP_EMPTY_IMAGES = True
 OUT_DIR = ROOT_DATA_DIR / "dave_outputs_rsoc_building"
 
 
+# Helper function for this experiment module
 def _img_dir(split: str) -> Path:
     rsoc_root = ROOT_DATA_DIR / "ASPDNet_dataset" / "RSOC_building" / "building"
     if split == "train":
@@ -93,7 +94,7 @@ def load_pseudo_txt(txt_path: Path) -> Dict[str, List[List[float]]]:
     return boxes_by_img
 
 
-# DAVE预处理和推理
+# DAVE preprocessing and inference
 
 def resize(img: Image.Image, img_size: int):
     resize_img = T.Resize((img_size, img_size), antialias=True)
@@ -141,8 +142,8 @@ def _weights_name(k: int) -> str:
 
 def build_args_from_defaults():
     """
-    直接从 get_argparser() 的默认值构造 args，
-    避免 required args 触发 argparse SystemExit。
+    Build args directly from get_argparser() defaults,
+    to avoid argparse SystemExit from required arguments.
     """
     base = get_argparser()
     defaults = {}
@@ -184,7 +185,7 @@ def infer_backbone_from_checkpoint(ckpt_model: Dict[str, torch.Tensor]) -> Optio
 
 def set_backbone_args(args, backbone: str):
     """
-    多候选字段
+    Multiple candidate field names
     """
     candidates = ["backbone", "backbone_name", "backbone_type", "arch", "model", "encoder"]
     for name in candidates:
@@ -230,13 +231,13 @@ def _infer_backbone_from_ckpt(ckpt_model: dict) -> str:
                 return "resnet50"
             if kh == 3 and kw == 3:
                 return "resnet18"
-    # 默认按论文ResNet50
+    # Default to ResNet50 following paper setting
     return "resnet50"
 
 
 def load_model(device: torch.device, k_shot: int):
     args = build_args_from_defaults()
-    args.model_path = str(MODEL_PATH)  # 保持与原demo一致：从args.model_path读权重
+    args.model_path = str(MODEL_PATH)  # Keep behavior consistent with original demo: load weights from args.model_path
 
     w_path = MODEL_PATH / _weights_name(k_shot)
     v_path = MODEL_PATH / "verification.pth"
@@ -302,8 +303,8 @@ def load_model(device: torch.device, k_shot: int):
 @torch.no_grad()
 def infer_one(model, device: torch.device, args, img_path: Path, bboxes_xyxy: torch.Tensor):
     """
-    返回：
-      pred_boxes_orig: Tensor[N,4]（原图像素坐标）
+    Returns:
+      pred_boxes_orig: Tensor[N,4] (original-image pixel coordinates)
       dmap_count: float
       box_count: int
     """
@@ -313,7 +314,7 @@ def infer_one(model, device: torch.device, args, img_path: Path, bboxes_xyxy: to
     img, scale = resize(image, args.image_size)
     img = img.unsqueeze(0).to(device)
 
-    # exemplar 从原图坐标缩放到 resize 坐标
+    # Scale exemplar boxes from original coordinates to resized coordinates
     b = bboxes_xyxy.clone()
     b[:, :, 0] *= scale[0]  # x1
     b[:, :, 2] *= scale[0]  # x2
@@ -406,7 +407,7 @@ def _safe_generate_bbox(self, density_map, tlrb, gt_dmap=None):
             x0 = max(0, int(box[0]))
             x1 = min(int(box[2]), dmap.shape[1])
 
-            #区域为空就跳过
+            #Skip empty regions
             if y1 <= y0 or x1 <= x0:
                 continue
 
@@ -421,7 +422,7 @@ def _safe_generate_bbox(self, density_map, tlrb, gt_dmap=None):
             boxes.append(box)
             scores.append(score)
 
-        #没有任何合法 box：返回空 BoxList
+        #If no valid boxes remain, return an empty BoxList
         if len(boxes) == 0:
             empty = BoxList(torch.zeros((0, 4), dtype=torch.float32), (density_map.shape[3], density_map.shape[2]))
             empty.fields["scores"] = torch.zeros((0,), dtype=torch.float32)
@@ -432,7 +433,7 @@ def _safe_generate_bbox(self, density_map, tlrb, gt_dmap=None):
         b_list.fields["scores"] = torch.tensor(scores, dtype=b_list.box.dtype)
         b_list = b_list.clip()
 
-        # 归一化分数
+        # Normalize scores
         if getattr(self, "norm_s", False) and len(scores) > 1 and max(scores) != min(scores):
             mn, mx = min(scores), max(scores)
             b_list.fields["scores"] = torch.tensor([(float(s) - mn) / (mx - mn) for s in b_list.fields["scores"]])
@@ -462,7 +463,7 @@ def run_split(split: str, model, device, args) -> List[List[str]]:
 
     boxes_by_img = load_pseudo_txt(pseudo_file)
 
-    #0框跳过
+    #Skip images with zero boxes
     img_names = sorted(boxes_by_img.keys()) if SKIP_EMPTY_IMAGES else sorted([p.name for p in img_dir.iterdir() if p.is_file()])
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)

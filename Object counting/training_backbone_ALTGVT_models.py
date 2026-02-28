@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from typing import Tuple
 
-# 引入 ALTGVT 核心结构
+# Import ALTGVT core architecture
 _this_dir = os.path.dirname(os.path.abspath(__file__))
 if _this_dir not in sys.path:
     sys.path.insert(0, _this_dir)
@@ -13,12 +13,12 @@ from ALTGVT import alt_gvt_small
 
 class Regression(nn.Module):
     """
-    回归头模块：用于处理 Backbone 提取的特征并输出局部及全局计数。
-    虽然 CBAM 类被删除，但 HSRankALTGVT 内部可能会引用含有类似结构的 Regression 层。
+    Regression head for backbone features; outputs local and global count scores.
+    Although CBAM was removed, HSRankALTGVT may still reference a similar Regression layer.
     """
     def __init__(self, clipnum: int = 16, chan: int = 256):
         super().__init__()
-        # 这里的 v1, v2, v3 是为了融合不同尺度的特征
+        # v1, v2, and v3 fuse multi-scale features
         self.v1 = nn.Sequential(
             nn.Conv2d(128, 256, 3, padding=1, dilation=1),
             nn.BatchNorm2d(256),
@@ -43,7 +43,7 @@ class Regression(nn.Module):
             nn.Conv2d(64, 1, 1),
             nn.ReLU(),
         )
-        # 全局输出层
+        # Global output head
         self.output = nn.Sequential(
             nn.Linear(4096 + clipnum, 1024, bias=True),
             nn.ReLU(inplace=True),
@@ -53,7 +53,7 @@ class Regression(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(16, 1),
         )
-        # 局部 16 网格输出层
+        # Local 16-grid output head
         self.c16 = nn.Sequential(
             nn.Linear(chan, 256, bias=True),
             nn.ReLU(inplace=True),
@@ -101,17 +101,17 @@ class Regression(nn.Module):
 
 class HSRankALTGVT(nn.Module):
     """
-    这是你目前在 train.py 中实际调用的模型类。
-    它封装了 ALT-GVT Backbone。
+    This is the model class currently used in train.py.
+    It wraps the ALT-GVT backbone.
     """
     def __init__(self, clipnum: int = 16, pretrained_backbone: bool = False):
         super().__init__()
-        # 实际的计算逻辑和层都在 ALTGVT.py 的 alt_gvt_small 中
+        # Core computations/layers are implemented in ALTGVT.py::alt_gvt_small
         self.backbone = alt_gvt_small(pretrained=pretrained_backbone)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         rank_local, rank_global = self.backbone(x)
-        # 映射到 0-1 之间
+        # Map outputs to [0, 1]
         rank_local = torch.sigmoid(rank_local)
         rank_global = torch.sigmoid(rank_global)
         return rank_local, rank_global

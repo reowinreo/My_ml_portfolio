@@ -42,6 +42,7 @@ data_transforms = {
     ]),
 }
 
+# Helper function for this experiment module
 def create_datasets_from_split(data_dir, split_path):
     full_dataset = datasets.ImageFolder(data_dir)
     split_data = np.load(split_path)
@@ -100,16 +101,16 @@ num_features = model.fc.in_features
 model.fc = nn.Linear(num_features, num_classes)
 model = model.to(device)
 
-#不确定性加权蒸馏损失
+#Uncertainty weighting term distillation loss
 def distillation_loss(student_logits, teacher_logits, T):
-    # 保持原有KD实现：Cross-Entropy(q_teacher, p_student) * T^2
+    # Keep original KD formulation: Cross-Entropy(q_teacher, p_student) * T^2
     soft_teacher = torch.nn.functional.softmax(teacher_logits / T, dim=1)
     soft_student = torch.nn.functional.log_softmax(student_logits / T, dim=1)
     return -torch.mean(torch.sum(soft_teacher * soft_student, dim=1)) * (T ** 2)
 
 class UncertaintyWeightedKDLoss(nn.Module):
     """
-    论文式总损失：
+    Paper-style total objective:
     L = L_hard/(2*sigma_hard^2) + L_kd/(2*sigma_soft^2) + log(sigma_hard) + log(sigma_soft)
     """
     def __init__(self, temperature=4):
@@ -132,7 +133,7 @@ class UncertaintyWeightedKDLoss(nn.Module):
 
 criterion = UncertaintyWeightedKDLoss(temperature=temperature).to(device)
 
-#加入可学习参数
+#Include learnable uncertainty parameters
 optimizer = optim.AdamW([
     {"params": model.parameters()},
     {"params": criterion.parameters(), "lr": 0.001}
@@ -181,7 +182,7 @@ def train_model(model, optimizer, scheduler, num_epochs=num_epochs, criterion=cr
 
             outputs = model(inputs)
 
-            #自动加权KD + CE
+            #Auto-weighted KD + CE
             loss, L_hard_det, L_kd_det, sigma_hard_det, sigma_soft_det = criterion(
                 student_logits=outputs, labels=labels, teacher_logits=t_logits
             )
@@ -207,7 +208,7 @@ def train_model(model, optimizer, scheduler, num_epochs=num_epochs, criterion=cr
         except Exception:
             print(f'train Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
-        # Validation phase 用硬标签做评估
+        # Use hard labels for validation metrics
         model.eval()
         running_loss_val = 0.0
         running_corrects_val = 0

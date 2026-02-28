@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 from typing import List, Tuple, Dict, Optional
 
+# Helper function for this experiment module
 def _safe_read_lines(path: str) -> List[str]:
     with open(path, "r", encoding="utf-8", errors="ignore") as f:
         return [ln.strip() for ln in f if ln.strip()]

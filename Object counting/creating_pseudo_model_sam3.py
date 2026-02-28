@@ -7,7 +7,7 @@ import torch
 import numpy as np
 from config import LOCAL_SAM3_PATH, SAM3_CHECKPOINT_PATH, SAM3_CONFIDENCE_THRESHOLD, DEVICE
 
-# SAM3 Windows Triton 模拟逻辑
+# SAM3 Windows Triton compatibility shim
 if sys.platform.startswith("win"):
     def _dummy_decorator(*args, **kwargs):
         if kwargs or (args and not callable(args[0])): return lambda f: f
@@ -39,6 +39,7 @@ from sam3.model_builder import build_sam3_image_model
 from sam3.model.sam3_image_processor import Sam3Processor
 from sam3.model.box_ops import box_xywh_to_cxcywh
 
+# Helper function for this experiment module
 def build_sam3_processor():
     if not os.path.exists(SAM3_CHECKPOINT_PATH):
         raise FileNotFoundError(f"SAM3 权重不存在: {SAM3_CHECKPOINT_PATH}")
