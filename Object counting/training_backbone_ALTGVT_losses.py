@@ -4,6 +4,7 @@ from typing import Optional
 
 T = 2
 
+# Helper function for this experiment module
 def torch_dcg_at_k(batch_sorted_labels: torch.Tensor, cutoff: Optional[int] = None) -> torch.Tensor:
     if cutoff is None:
         cutoff = batch_sorted_labels.size(1)

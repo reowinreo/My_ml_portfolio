@@ -45,6 +45,7 @@ data_transforms = {
     ]),
 }
 
+# Helper function for this experiment module
 def create_datasets_from_split(data_dir, split_path):
     full_dataset = datasets.ImageFolder(data_dir)
     split_data = np.load(split_path)
@@ -112,9 +113,9 @@ student_backbone.fc = nn.Linear(nf_s, num_classes)
 student_backbone = student_backbone.to(device)
 student = PenultimateWrapper(student_backbone).to(device)
 
-#特征MSE KD(KL) 硬标签CE
+#Feature MSE + KD(KL) + hard-label CE
 def feature_mse_loss(student_feats_2048, teacher_feats_2048):
-    # L2 归一化后做 MSE
+    # L2 normalization before MSE
     p = torch.nn.functional.normalize(student_feats_2048, p=2, dim=1)
     q = torch.nn.functional.normalize(teacher_feats_2048, p=2, dim=1)
     return torch.nn.functional.mse_loss(p, q)
@@ -128,7 +129,7 @@ def kd_kl_loss(student_logits, teacher_logits, T: float):
 
 ce_criterion = nn.CrossEntropyLoss()
 
-#不确定性加权
+#Uncertainty weighting term
 class UncertaintyWeightedFeatKDCE(nn.Module):
     def __init__(self):
         super().__init__()
@@ -144,12 +145,12 @@ class UncertaintyWeightedFeatKDCE(nn.Module):
              + (L_kd   / (2 * sigma_kd**2)) \
              + (L_ce   / (2 * sigma_ce**2)) \
              + torch.log(sigma_feat) + torch.log(sigma_kd) + torch.log(sigma_ce)
-        # 返回中间量（仅打印监控用）
+        # Return intermediate values (for logging only)
         return loss, sigma_feat.detach(), sigma_kd.detach(), sigma_ce.detach()
 
 criterion = UncertaintyWeightedFeatKDCE().to(device)
 
-#两组参数+余弦热重启
+#Two parameter groups + cosine warm restarts
 optimizer = optim.AdamW([
     {"params": student.parameters()},
     {"params": criterion.parameters(), "lr": 0.001}
@@ -178,21 +179,21 @@ def train_model(student, optimizer, scheduler, num_epochs=num_epochs):
 
             optimizer.zero_grad()
 
-            # teacher 前向
+            # Teacher forward pass
             with torch.no_grad():
                 t_feats, t_logits = teacher(inputs)
 
-            # student 前向
+            # Student forward pass
             s_feats, s_logits = student(inputs)
 
             L_feat = feature_mse_loss(s_feats, t_feats)
             L_kd   = kd_kl_loss(s_logits, t_logits, temperature)
             L_ce   = ce_criterion(s_logits, labels)
 
-            # 动态加权总损失
+            # Dynamically weighted total loss
             loss, sigma_feat_det, sigma_kd_det, sigma_ce_det = criterion(L_feat, L_kd, L_ce)
 
-            # 训练准确率
+            # Training accuracy
             _, preds = torch.max(s_logits, 1)
 
             loss.backward()
@@ -225,7 +226,7 @@ def train_model(student, optimizer, scheduler, num_epochs=num_epochs):
                 L_kd   = kd_kl_loss(s_logits, t_logits, temperature)
                 L_ce   = ce_criterion(s_logits, labels)
 
-                # 验证总损失（不回传），用于监控
+                # Validation total loss (no backprop), for monitoring
                 val_loss, _, _, _ = criterion(L_feat, L_kd, L_ce)
 
                 _, preds = torch.max(s_logits, 1)
@@ -240,7 +241,7 @@ def train_model(student, optimizer, scheduler, num_epochs=num_epochs):
 
         print(f'val  Loss: {epoch_loss_val:.4f} Acc: {epoch_acc_val:.4f}')
 
-        #保存最佳
+        #Save best checkpoint
         if epoch_acc_val > best_acc:
             best_acc = epoch_acc_val
             best_model_wts = copy.deepcopy(student.state_dict())
@@ -275,7 +276,7 @@ def evaluate_model(student, dataloader):
 print("开始训练模型...")
 student, history = train_model(student, optimizer, scheduler, num_epochs=num_epochs)
 
-#画准确率曲线
+#Plot accuracy curves
 epochs_axis = np.arange(len(history['train_acc']))
 plt.figure()
 plt.plot(epochs_axis, history['train_acc'], label='Train Acc')
@@ -286,7 +287,7 @@ try:
 except Exception:
     pass
 
-#保持原保存文件名不变
+#Keep original checkpoint filename unchanged
 torch.save(student.state_dict(), 'saved_models/硬标签+kl+feat_mse_uncertainty_weighted_resnet50_student_final.pth')
 
 print("在测试集上评估...")

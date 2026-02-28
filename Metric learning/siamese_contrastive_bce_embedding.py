@@ -8,10 +8,11 @@ from sklearn.metrics import accuracy_score
 import torch.nn.functional as F
 
 
+# Helper function for this experiment module
 def load_data(X_path, y_path, num_channels=4):
     X = np.loadtxt(X_path, delimiter=",")
     y = np.loadtxt(y_path, delimiter=",")
-    X = X.reshape(-1, num_channels, 28, 28)  # SAT6 每张图 28x28
+    X = X.reshape(-1, num_channels, 28, 28)  # SAT-6 每张图 28x28
     y = np.argmax(y, axis=1)  # one-hot 转为类别索引
     return X, y
 
@@ -58,7 +59,7 @@ class PairDataset(Dataset):
         )
 
 
-# 对比损失函数
+# Contrastive loss function
 class ContrastiveLoss(nn.Module):
     def __init__(self, margin=2.0): 
         super(ContrastiveLoss, self).__init__()
@@ -72,7 +73,7 @@ class ContrastiveLoss(nn.Module):
         )
         return loss_contrastive
 
-# CNN 网络（更深）
+# CNN backbone (deeper variant)
 class SimpleCNN(nn.Module):
     def __init__(self):
         super(SimpleCNN, self).__init__()
@@ -98,7 +99,7 @@ class SimpleCNN(nn.Module):
     def forward(self, x):
         x = self.conv(x)
         x = self.fc(x)
-        # -------- 特征归一化 --------
+        # -------- Feature normalization --------
         x = F.normalize(x, p=2, dim=1)
         return x
 
@@ -122,7 +123,7 @@ class SiameseCNN(nn.Module):
         return f1, f2, pred
 
 
-# 训练函数（对比损失 + BCE）
+# Training function (contrastive loss + BCE)
 def train_siamese(model, dataloader, device):
     contrastive_loss = ContrastiveLoss(margin=2.0)
     bce_loss = nn.BCELoss()
@@ -143,7 +144,7 @@ def train_siamese(model, dataloader, device):
             total_loss += loss.item()
         print(f"Epoch {epoch + 1}, Loss: {total_loss / len(dataloader):.4f}")
 
-# 提取特征，SVM 前做归一化
+# Extract features, normalized before SVM classifier
 def extract_features(model, X, device):
     model.eval()
     features = []
@@ -155,9 +156,9 @@ def extract_features(model, X, device):
     return np.vstack(features)
 
 
-# 主流程
+# Main pipeline
 if __name__ == "__main__":
-    #SAT6
+    #SAT-6
     X_train, y_train = load_data("X_train_sat6.csv", "y_train_sat6.csv", num_channels=4)
     X_test, y_test = load_data("X_test_sat6.csv", "y_test_sat6.csv", num_channels=4)
 
@@ -171,16 +172,16 @@ if __name__ == "__main__":
     X_train, y_train = X_all[train_idx], y_all[train_idx]
     X_test, y_test = X_all[test_idx], y_all[test_idx]
 
-    #构建训练对
+    #Build training pairs
     train_dataset = PairDataset(X_train, y_train, num_pairs=200000)
     train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
 
-    #训练
+    #Training
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = SiameseCNN().to(device)
     train_siamese(model, train_loader, device)
 
-    #SVM
+    #SVM classifier
     svm_train_sample = np.random.choice(len(train_idx), 20000, replace=False)
     X_svm_train_raw = X_train[svm_train_sample]
     y_svm_train = y_train[svm_train_sample]

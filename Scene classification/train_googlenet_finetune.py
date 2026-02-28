@@ -15,14 +15,14 @@ import seaborn as sns
 torch.manual_seed(42)
 np.random.seed(42)
 
-# 数据目录
+# Dataset root directory
 data_dir = 'dataset_raw'
 
-# 训练参数
+# Training hyperparameters
 batch_size = 128
 num_classes = 45
 
-# 数据预处理
+# Data preprocessing
 data_transforms = {
     'train': transforms.Compose([
         transforms.RandomResizedCrop(224),
@@ -56,6 +56,7 @@ class TransformedDataset(torch.utils.data.Dataset):
         return len(self.dataset)
 
 
+# Helper function for this experiment module
 def create_datasets(data_dir, train_ratio=0.1):
     full_dataset = datasets.ImageFolder(data_dir)
     class_indices = {}
@@ -92,13 +93,13 @@ dataset_sizes = {'train': len(train_dataset), 'val': len(val_dataset)}
 print(f"训练集大小: {dataset_sizes['train']}")
 print(f"验证集大小: {dataset_sizes['val']}")
 
-# 计算 epoch 数
+# Compute epoch count
 train_samples = dataset_sizes['train']
 target_iterations = 15000
 num_epochs = 119
 print(f"使用 {num_epochs} 个 epoch ≈ 15000 iterations")
 
-# 加载模型
+# Load model
 print("加载预训练GoogLeNet模型...")
 model = models.googlenet(pretrained=False, aux_logits=False)
 num_features = model.fc.in_features
@@ -118,7 +119,7 @@ model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()
 
-# 参数分组
+# Parameter groups
 fc_params = list(model.fc.parameters())
 fc_param_ids = {id(p) for p in fc_params}
 base_params = [p for p in model.parameters() if id(p) not in fc_param_ids]
@@ -129,14 +130,14 @@ optimizer = optim.SGD([
 ], momentum=0.9, weight_decay=5e-4)
 
 def lr_lambda_base(epoch):
-    # 前10个epoch线性从1e-5到1e-3
+    # Linearly increase base LR from 1e-5 to 1e-3 in first 10 epochs
     if epoch < 10:
         return (1e-5 + (1e-3 - 1e-5) * (epoch / 9)) / 1e-5
     else:
         return 1e-3 / 1e-5  # 保持在1e-3
 
 def lr_lambda_fc(epoch):
-    # 最后10个epoch线性从1e-2降到1e-4
+    # Linearly decrease FC LR from 1e-2 to 1e-4 in final 10 epochs
     if epoch < num_epochs - 10:
         return 1.0  # 保持在1e-2
     else:
@@ -198,7 +199,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=num_epochs):
                 best_model_wts = copy.deepcopy(model.state_dict())
                 torch.save(model.state_dict(), 'saved_models/best_model.pth')
 
-        # 更新学习率
+        # Update learning rate
         scheduler.step()
         print(f"当前学习率: {[group['lr'] for group in optimizer.param_groups]}")
 

@@ -8,15 +8,16 @@ from sklearn.metrics import accuracy_score
 import torch.nn.functional as F
 
 
+# Helper function for this experiment module
 def load_data(X_path, y_path, num_channels=4):
     X = np.loadtxt(X_path, delimiter=",")
     y = np.loadtxt(y_path, delimiter=",")
-    X = X.reshape(-1, num_channels, 28, 28)  # SAT6 每张图 28x28
+    X = X.reshape(-1, num_channels, 28, 28)  # SAT-6 每张图 28x28
     y = np.argmax(y, axis=1)                 # one-hot 转为类别索引
     return X, y
 
 
-# Triplet 数据集
+# Triplet dataset
 class TripletDataset(Dataset):
     def __init__(self, X, y, num_triplets=60000):
         self.X = X
@@ -45,7 +46,7 @@ class TripletDataset(Dataset):
         )
 
 
-# Triplet Loss
+# Triplet loss
 class TripletLoss(nn.Module):
     def __init__(self, margin=2.0):
         super(TripletLoss, self).__init__()
@@ -100,7 +101,7 @@ class TripletCNN(nn.Module):
         return fa, fp, fn
 
 
-# 训练函数
+# Training function
 def train_triplet(model, dataloader, device):
     criterion = TripletLoss(margin=0.5)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -118,7 +119,7 @@ def train_triplet(model, dataloader, device):
         print(f"Epoch {epoch+1}, Loss: {total_loss/len(dataloader):.4f}")
 
 
-# 提取特征
+# Extract features
 def extract_features(model, X, device):
     model.eval()
     features = []
@@ -130,9 +131,9 @@ def extract_features(model, X, device):
     return np.vstack(features)
 
 
-# 主流程
+# Main pipeline
 if __name__ == "__main__":
-    #SAT6
+    #SAT-6
     X_train, y_train = load_data("X_train_sat6.csv", "y_train_sat6.csv", num_channels=4)
     X_test, y_test   = load_data("X_test_sat6.csv",  "y_test_sat6.csv",  num_channels=4)
 
@@ -147,16 +148,16 @@ if __name__ == "__main__":
     X_train, y_train = X_all[train_idx], y_all[train_idx]
     X_test, y_test   = X_all[test_idx], y_all[test_idx]
 
-    #构建Triplet训练集
+    #Build triplet training set
     train_dataset = TripletDataset(X_train, y_train, num_triplets=200000)
     train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
 
-    #训练CNN
+    #Train the CNN encoder
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = TripletCNN().to(device)
     train_triplet(model, train_loader, device)
 
-    #提取特征并训练SVM
+    #Extract features and train SVM classifier
     svm_train_sample = np.random.choice(len(train_idx), 20000, replace=False)
     X_svm_train_raw = X_train[svm_train_sample]
     y_svm_train = y_train[svm_train_sample]

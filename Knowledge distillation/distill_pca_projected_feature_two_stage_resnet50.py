@@ -54,6 +54,7 @@ data_transforms = {
     ]),
 }
 
+# Helper function for this experiment module
 def create_datasets_from_split(data_dir, split_path):
     full_dataset = datasets.ImageFolder(data_dir)
     split_data = np.load(split_path)

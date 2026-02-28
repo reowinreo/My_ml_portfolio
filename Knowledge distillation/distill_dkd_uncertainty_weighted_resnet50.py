@@ -43,6 +43,7 @@ data_transforms = {
     ]),
 }
 
+# Helper function for this experiment module
 def create_datasets_from_split(data_dir, split_path):
     full_dataset = datasets.ImageFolder(data_dir)
     split_data = np.load(split_path)
@@ -101,12 +102,12 @@ num_features = model.fc.in_features
 model.fc = nn.Linear(num_features, num_classes)
 model = model.to(device)
 
-#DKD + 不确定性加权损失
+#DKD + uncertainty-weighted loss
 
 def dkd_tckd_nckd(student_logits, teacher_logits, labels, T=4.0, eps=1e-12):
     """
-    TCKD: 目标类与非目标类的二分类KL
-    NCKD: 非目标类之间条件分布的KL
+    TCKD: binary KL between target and non-target classes
+    NCKD: KL over non-target conditional distributions
     """
     s_logits_T = student_logits / T
     t_logits_T = teacher_logits / T
@@ -133,15 +134,15 @@ def dkd_tckd_nckd(student_logits, teacher_logits, labels, T=4.0, eps=1e-12):
     ).mean() * (T ** 2)
 
     #NCKD
-    #mask:True表示“非目标类”
+    #mask=True indicates non-target classes
     mask = torch.ones_like(p_s, dtype=torch.bool)
-    mask.scatter_(1, labels, False)  # 把目标类位置设为 False
+    mask.scatter_(1, labels, False)  # Set target-class positions to False
 
     s_logits_nt = s_logits_T.masked_fill(~mask, -1e30)
     t_logits_nt = t_logits_T.masked_fill(~mask, -1e30)
 
-    log_p_s_nt = F.log_softmax(s_logits_nt, dim=1)  # 学生非目标条件分布（log）
-    p_t_nt = F.softmax(t_logits_nt, dim=1)          # 老师非目标条件分布（prob）
+    log_p_s_nt = F.log_softmax(s_logits_nt, dim=1)  # Student non-target conditional distribution (log-space)
+    p_t_nt = F.softmax(t_logits_nt, dim=1)          # Teacher non-target conditional distribution (probability)
 
     nckd = torch.sum(
         p_t_nt * (torch.log(p_t_nt + eps) - log_p_s_nt),
@@ -153,7 +154,7 @@ def dkd_tckd_nckd(student_logits, teacher_logits, labels, T=4.0, eps=1e-12):
 
 class UncertaintyWeightedKDLoss(nn.Module):
     """
-    不再做 CE + KD，而是做 DKD(TCKD + NCKD) 的不确定性加权
+    Use uncertainty weighting on DKD (TCKD + NCKD), instead of CE + KD
     """
     def __init__(self, temperature=4):
         super().__init__()
@@ -162,7 +163,7 @@ class UncertaintyWeightedKDLoss(nn.Module):
         self.log_sigma_n = nn.Parameter(torch.zeros(1))
 
     def forward(self, student_logits, labels, teacher_logits):
-        # 计算 DKD 的两个组件
+        # Compute the two DKD components
         L_tckd, L_nckd = dkd_tckd_nckd(
             student_logits=student_logits,
             teacher_logits=teacher_logits,
@@ -173,7 +174,7 @@ class UncertaintyWeightedKDLoss(nn.Module):
         sigma_t = torch.exp(self.log_sigma_t)  # > 0
         sigma_n = torch.exp(self.log_sigma_n)
 
-        # 不确定性加权
+        # Uncertainty weighting term
         loss = (L_tckd / (2 * sigma_t**2)) + (L_nckd / (2 * sigma_n**2)) \
                + torch.log(sigma_t) + torch.log(sigma_n)
 
@@ -181,7 +182,7 @@ class UncertaintyWeightedKDLoss(nn.Module):
 
 criterion = UncertaintyWeightedKDLoss(temperature=temperature).to(device)
 
-#加入可学习参数
+#Include learnable uncertainty parameters
 optimizer = optim.AdamW([
     {"params": model.parameters()},
     {"params": criterion.parameters(), "lr": 0.001}
@@ -230,7 +231,7 @@ def train_model(model, optimizer, scheduler, num_epochs=num_epochs, criterion=cr
 
             outputs = model(inputs)
 
-            #损失的计算与回传 DKD+不确定性加权
+            #Compute and backpropagate DKD + uncertainty weighting
             loss, L_tckd_det, L_nckd_det, sigma_t_det, sigma_n_det = criterion(
                 student_logits=outputs, labels=labels, teacher_logits=t_logits
             )

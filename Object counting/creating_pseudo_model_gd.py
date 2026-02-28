@@ -7,6 +7,7 @@ _GD_PROCESSOR = None
 _GD_MODEL = None
 _GD_DEVICE_STR = None
 
+# Helper function for this experiment module
 def _ensure_gd_prompt(prompt_text: str) -> str:
     if prompt_text is None: return ""
     t = str(prompt_text).strip()

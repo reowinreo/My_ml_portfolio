@@ -5,6 +5,7 @@ import random
 import numpy as np
 from config import *
 
+# Helper function for this experiment module
 def list_images(img_dir):
     if not img_dir or not os.path.isdir(img_dir): return []
     return [os.path.join(img_dir, f) for f in os.listdir(img_dir) if f.lower().endswith(IMAGE_EXTS)]

@@ -12,19 +12,19 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# 设置随机种子以确保可重复性
+# Set random seeds for reproducibility
 torch.manual_seed(42)
 np.random.seed(42)
 
-# 数据目录
+# Dataset root directory
 data_dir = 'dataset_raw'  # NWPU-RESISC45数据集根目录
 
-# 训练参数
-batch_size = 50  # 原程序的批大小
+# Training hyperparameters
+batch_size = 50  # Original script batch size
 num_epochs = 119
 num_classes = 45  # NWPU-RESISC45有45个类别
 
-# 数据预处理
+# Data preprocessing
 data_transforms = {
     'train': transforms.Compose([
         transforms.RandomResizedCrop(224),
@@ -56,7 +56,7 @@ class TransformedDataset(torch.utils.data.Dataset):
         return len(self.dataset)
 
 
-# 创建数据集
+# Create datasets
 def create_datasets(data_dir, train_ratio=0.2):
     """创建训练和验证数据集，按照论文使用20%训练，80%验证的比例"""
     full_dataset = datasets.ImageFolder(data_dir)
@@ -84,44 +84,44 @@ def create_datasets(data_dir, train_ratio=0.2):
     return train_dataset, val_dataset, full_dataset.classes
 
 
-print("创建数据集...")
+print("Create datasets...")
 train_dataset, val_dataset, class_names = create_datasets(data_dir, train_ratio=0.1)
 
-# 设置num_workers=0以避免多进程问题
+# Use num_workers=0 to avoid multiprocessing issues
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 val_loader = torch.utils.data.DataLoader(
     val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
 dataset_sizes = {'train': len(train_dataset), 'val': len(val_dataset)}
-print(f"训练集大小: {dataset_sizes['train']}")
+print(f"Training集大小: {dataset_sizes['train']}")
 print(f"验证集大小: {dataset_sizes['val']}")
 
 
-print("加载预训练 Swin-T (Swin Transformer Tiny) 模型...")
+print("加载预Training Swin-T (Swin Transformer Tiny) 模型...")
 
 try:
     model = models.swin_t(weights=None)
 except TypeError:
     model = models.swin_t(pretrained=False)
 
-# 预训练权重：优先从本地读取；没有就自动下载到 pretrained_models/ 目录
+# Pretrained weights: load local first, otherwise download into pretrained_models/
 swin_url = "https://download.pytorch.org/models/swin_t-704ceda3.pth"
 pretrained_path = "pretrained_models/swin_t-704ceda3.pth"
 os.makedirs(os.path.dirname(pretrained_path), exist_ok=True)
 
 if os.path.exists(pretrained_path):
     state_dict = torch.load(pretrained_path, map_location="cpu")
-    print(f"已加载本地预训练权重: {pretrained_path}")
+    print(f"已加载本地预Training权重: {pretrained_path}")
 else:
-    print("未找到本地预训练权重，尝试在线下载（需要联网）...")
+    print("未找到本地预Training权重，尝试在线下载（需要联网）...")
     state_dict = torch.hub.load_state_dict_from_url(
         swin_url,
-        model_dir=os.path.dirname(pretrained_path),  # 下载到 pretrained_models/
+        model_dir=os.path.dirname(pretrained_path),  # download into pretrained_models/
         map_location="cpu",
         check_hash=True
     )
-    print(f"已下载并加载预训练权重到目录: {os.path.dirname(pretrained_path)}")
+    print(f"已下载并Load pretrained weights到目录: {os.path.dirname(pretrained_path)}")
 
 model.load_state_dict(state_dict)
 
@@ -170,11 +170,11 @@ optimizer = optim.SGD([
     {'params': head_params, 'lr': 0.01}
 ], momentum=0.9, weight_decay=0.0005)
 
-# 学习率调度器
+# Learning-rate scheduler
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
 
 
-# 训练函数
+# Training function
 def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     since = time.time()
 
@@ -235,23 +235,23 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
-                # 保存最佳模型
+                # Save the current best model
                 torch.save(model.state_dict(), 'saved_models/best_model.pth')
 
-        # 在每个epoch结束后更新学习率
+        # Update learning rate at the end of each epoch
         scheduler.step()
         print()
 
     time_elapsed = time.time() - since
-    print(f'训练完成于 {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
+    print(f'Training完成于 {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
     print(f'最佳验证准确率: {best_acc:.4f}')
 
-    # 加载最佳模型权重
+    # Load best model weights before returning
     model.load_state_dict(best_model_wts)
     return model, history
 
 
-# 评估函数
+# Evaluation function
 def evaluate_model(model, dataloader):
     model.eval()
     all_preds = []
@@ -268,26 +268,26 @@ def evaluate_model(model, dataloader):
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
-    # 计算准确率
+    # Compute accuracy
     accuracy = accuracy_score(all_labels, all_preds)
 
-    # 计算混淆矩阵
+    # Compute confusion matrix
     cm = confusion_matrix(all_labels, all_preds)
 
     return accuracy, cm, all_preds, all_labels
 
 
-# 创建保存模型的目录
+# Create directory for model checkpoints
 os.makedirs('saved_models', exist_ok=True)
 
-# 训练模型
-print("开始训练模型...")
+# Train model
+print("开始Train model...")
 model, history = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs=num_epochs)
 
-# 保存最终模型
+# Save final model
 torch.save(model.state_dict(), 'saved_models/final_model.pth')
 
-# 评估模型
-print("评估模型...")
+# Evaluate model
+print("Evaluate model...")
 val_accuracy, cm, all_preds, all_labels = evaluate_model(model, val_loader)
 print(f"验证集准确率: {val_accuracy:.4f}")
