@@ -75,9 +75,9 @@ dataset_sizes = {
     'val': len(val_dataset),
     'test': len(test_dataset)
 }
-print(f"训练集大小: {dataset_sizes['train']}")
-print(f"验证集大小: {dataset_sizes['val']}")
-print(f"测试集大小: {dataset_sizes['test']}")
+print(f"Train set size: {dataset_sizes['train']}")
+print(f"Validation set size: {dataset_sizes['val']}")
+print(f"Test set size: {dataset_sizes['test']}")
 
 model = models.resnet152(pretrained=False)
 num_features = model.fc.in_features
@@ -140,14 +140,14 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=num_epochs):
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
                 torch.save(model.state_dict(), 'saved_models/best_model.pth')
-                print(f"保存最优模型: epoch {epoch}, val_acc={epoch_acc:.4f}")
+                print(f"Saved best model: epoch {epoch}, val_acc={epoch_acc:.4f}")
 
         scheduler.step()
-        print(f"当前学习率: {[group['lr'] for group in optimizer.param_groups]}")
+        print(f"Current learning rates: {[group['lr'] for group in optimizer.param_groups]}")
 
     time_elapsed = time.time() - since
-    print(f'训练完成于 {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
-    print(f'最佳验证准确率: {best_acc:.4f}')
+    print(f'Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
+    print(f'Best validation accuracy: {best_acc:.4f}')
 
     model.load_state_dict(best_model_wts)
 
@@ -169,10 +169,10 @@ def evaluate_model(model, dataloader):
 
 os.makedirs('saved_models', exist_ok=True)
 
-print("开始训练模型...")
+print("Starting model training...")
 model, history = train_model(model, criterion, optimizer, scheduler, num_epochs=num_epochs)
 
 torch.save(model.state_dict(), 'saved_models/resnet152_final_model.pth')
 
 test_acc, cm, all_preds, all_labels = evaluate_model(model, test_loader)
-print(f"测试集准确率: {test_acc:.4f}")
+print(f"Test set accuracy: {test_acc:.4f}")

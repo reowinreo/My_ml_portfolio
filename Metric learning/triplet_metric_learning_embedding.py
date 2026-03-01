@@ -12,8 +12,8 @@ import torch.nn.functional as F
 def load_data(X_path, y_path, num_channels=4):
     X = np.loadtxt(X_path, delimiter=",")
     y = np.loadtxt(y_path, delimiter=",")
-    X = X.reshape(-1, num_channels, 28, 28)  # SAT-6 每张图 28x28
-    y = np.argmax(y, axis=1)                 # one-hot 转为类别索引
+    X = X.reshape(-1, num_channels, 28, 28)  # SAT-6 per image 28x28
+    y = np.argmax(y, axis=1)                 # one-hot to class indices
     return X, y
 
 
@@ -85,7 +85,7 @@ class SimpleCNN(nn.Module):
     def forward(self, x):
         x = self.conv(x)
         x = self.fc(x)
-        x = F.normalize(x, p=2, dim=1)  # 归一化
+        x = F.normalize(x, p=2, dim=1)  # normalize
         return x
 
 

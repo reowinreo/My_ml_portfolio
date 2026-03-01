@@ -69,15 +69,15 @@ val_loader   = torch.utils.data.DataLoader(val_dataset,   batch_size=batch_size,
 test_loader  = torch.utils.data.DataLoader(test_dataset,  batch_size=batch_size, shuffle=False, num_workers=0)
 
 dataset_sizes = {'train': len(train_dataset), 'val': len(val_dataset), 'test': len(test_dataset)}
-print(f"训练集大小: {dataset_sizes['train']}")
-print(f"验证集大小: {dataset_sizes['val']}")
-print(f"测试集大小: {dataset_sizes['test']}")
+print(f"Train set size: {dataset_sizes['train']}")
+print(f"Validation set size: {dataset_sizes['val']}")
+print(f"Test set size: {dataset_sizes['test']}")
 
 class PenultimateWrapper(nn.Module):
     """
-    输出:
-      feats: [B, 2048]  (avgpool后展平，位于fc之前)
-      logits: [B, num_classes]  (fc输出)
+    Output:
+      feats: [B, 2048]  (flattened after avgpool, before fc)
+      logits: [B, num_classes]  (fc output)
     """
     def __init__(self, backbone):
         super().__init__()
@@ -104,7 +104,7 @@ teacher_backbone.load_state_dict(torch.load('saved_models/resnet152_final_model.
 teacher_backbone = teacher_backbone.to(device).eval()
 teacher = PenultimateWrapper(teacher_backbone).to(device).eval()
 for p in teacher.parameters():
-    p.requires_grad = False  # teacher 不参与更新
+    p.requires_grad = False  # teacher is not updated
 
 #Student
 student_backbone = models.resnet50(pretrained=False)
@@ -246,14 +246,14 @@ def train_model(student, optimizer, scheduler, num_epochs=num_epochs):
             best_acc = epoch_acc_val
             best_model_wts = copy.deepcopy(student.state_dict())
             torch.save(student.state_dict(), 'saved_models/best_model.pth')
-            print(f"保存最优模型: epoch {epoch}, val_acc={epoch_acc_val:.4f}")
+            print(f"Saved best model: epoch {epoch}, val_acc={epoch_acc_val:.4f}")
 
         scheduler.step()
-        print(f"当前学习率: {[pg['lr'] for pg in optimizer.param_groups]}")
+        print(f"Current learning rates: {[pg['lr'] for pg in optimizer.param_groups]}")
 
     time_elapsed = time.time() - since
-    print(f'训练完成于 {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
-    print(f'最佳验证准确率: {best_acc:.4f}')
+    print(f'Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
+    print(f'Best validation accuracy: {best_acc:.4f}')
 
     student.load_state_dict(best_model_wts)
     return student, history
@@ -273,7 +273,7 @@ def evaluate_model(student, dataloader):
     cm  = confusion_matrix(all_labels, all_preds)
     return acc, cm, all_preds, all_labels
 
-print("开始训练模型...")
+print("Starting model training...")
 student, history = train_model(student, optimizer, scheduler, num_epochs=num_epochs)
 
 #Plot accuracy curves
@@ -288,8 +288,8 @@ except Exception:
     pass
 
 #Keep original checkpoint filename unchanged
-torch.save(student.state_dict(), 'saved_models/硬标签+kl+feat_mse_uncertainty_weighted_resnet50_student_final.pth')
+torch.save(student.state_dict(), 'saved_models/hardlabel_kl_feat-mse_uncertainty-weighted_resnet50_student_final.pth')
 
-print("在测试集上评估...")
+print("Evaluating on the test set...")
 test_acc, cm, all_preds, all_labels = evaluate_model(student, test_loader)
-print(f"测试集准确率: {test_acc:.4f}")
+print(f"Test set accuracy: {test_acc:.4f}")

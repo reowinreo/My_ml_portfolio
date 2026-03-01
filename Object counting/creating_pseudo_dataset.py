@@ -76,13 +76,13 @@ def select_exemplar_boxes(dataset_label: str, split_for_exemplar: str, num_image
     if not img_list: return []
     random.Random(int(EXEMPLAR_RANDOM_SEED)).shuffle(img_list)
     picked, need = [], max(0, int(num_images))
-    print(f"\n[Exemplar] 将从 split={split_for_exemplar} 中随机抽取 {need} 张图片，让你逐张手动框选 1 个 ROI。")
+    print(f"\n[Exemplar] Will randomly sample {need} images from split={split_for_exemplar}; you will manually draw one ROI for each image.")
     for img_path in img_list:
         if len(picked) >= need: break
         if (img_bgr := cv2.imread(img_path)) is None: continue
         h, w = img_bgr.shape[:2]
         base = os.path.basename(img_path)
-        print(f"\n[Exemplar] ({len(picked)+1}/{need}) 选择：{base}")
+        print(f"\n[Exemplar] ({len(picked)+1}/{need}) Selected: {base}")
         try:
             roi = cv2.selectROI(EXEMPLAR_WINDOW_NAME, img_bgr, fromCenter=False, showCrosshair=True)
             cv2.destroyWindow(EXEMPLAR_WINDOW_NAME)
@@ -95,7 +95,7 @@ def select_exemplar_boxes(dataset_label: str, split_for_exemplar: str, num_image
         x, y, ww, hh = max(0, min(w-1, roi[0])), max(0, min(h-1, roi[1])), max(1, min(w-roi[0], roi[2])), max(1, min(h-roi[1], roi[3]))
         label = True
         if EXEMPLAR_ALLOW_NEGATIVE_LABEL:
-            if input("  label? 输入 p(正)/n(负)，默认 p：").strip().lower() == "n": label = False
+            if input("  label? enter p(pos)/n(neg), default p: ").strip().lower() == "n": label = False
         
         crop = img_bgr[y:y+hh, x:x+ww].copy()
         if crop.size == 0: continue
@@ -104,7 +104,7 @@ def select_exemplar_boxes(dataset_label: str, split_for_exemplar: str, num_image
             crop = cv2.resize(crop, (max(1, int(round(crop.shape[1]*scale))), max(1, int(round(crop.shape[0]*scale)))), interpolation=cv2.INTER_AREA)
         
         picked.append({"crop_bgr": crop, "crop_gray": cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY), "label": label, "src_image": base, "roi_abs_xywh": (x, y, ww, hh)})
-        print(f"[Exemplar] 已记录 crop shape={crop.shape[:2]} | label={'pos' if label else 'neg'}")
+        print(f"[Exemplar] Recorded crop shape={crop.shape[:2]} | label={'pos' if label else 'neg'}")
     return picked
 
 def match_exemplars_to_image(img_bgr, exemplar_list):

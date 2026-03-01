@@ -17,12 +17,12 @@ torch.manual_seed(42)
 np.random.seed(42)
 
 # Dataset root directory
-data_dir = 'dataset_raw'  # NWPU-RESISC45数据集根目录
+data_dir = 'dataset_raw'  # NWPU-RESISC45dataset root directory
 
 # Training hyperparameters
 batch_size = 50  # Original script batch size
 num_epochs = 119
-num_classes = 45  # NWPU-RESISC45有45个类别
+num_classes = 45  # NWPU-RESISC45has 45 classes
 
 # Data preprocessing
 data_transforms = {
@@ -58,7 +58,7 @@ class TransformedDataset(torch.utils.data.Dataset):
 
 # Create datasets
 def create_datasets(data_dir, train_ratio=0.2):
-    """创建训练和验证数据集，按照论文使用20%训练，80%验证的比例"""
+    """Create train/validation datasets using the 20% train / 80% validation split from the paper"""
     full_dataset = datasets.ImageFolder(data_dir)
     class_indices = {}
     for idx, (path, label) in enumerate(full_dataset.samples):
@@ -94,11 +94,11 @@ val_loader = torch.utils.data.DataLoader(
     val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
 dataset_sizes = {'train': len(train_dataset), 'val': len(val_dataset)}
-print(f"Training集大小: {dataset_sizes['train']}")
-print(f"验证集大小: {dataset_sizes['val']}")
+print(f"Training set size: {dataset_sizes['train']}")
+print(f"Validation set size: {dataset_sizes['val']}")
 
 
-print("加载预Training Swin-T (Swin Transformer Tiny) 模型...")
+print("Loading pretrained Swin-T (Swin Transformer Tiny) model...")
 
 try:
     model = models.swin_t(weights=None)
@@ -112,22 +112,22 @@ os.makedirs(os.path.dirname(pretrained_path), exist_ok=True)
 
 if os.path.exists(pretrained_path):
     state_dict = torch.load(pretrained_path, map_location="cpu")
-    print(f"已加载本地预Training权重: {pretrained_path}")
+    print(f"Loaded local pretrained weights: {pretrained_path}")
 else:
-    print("未找到本地预Training权重，尝试在线下载（需要联网）...")
+    print("Local pretrained weights not found, trying online download (internet required)...")
     state_dict = torch.hub.load_state_dict_from_url(
         swin_url,
         model_dir=os.path.dirname(pretrained_path),  # download into pretrained_models/
         map_location="cpu",
         check_hash=True
     )
-    print(f"已下载并Load pretrained weights到目录: {os.path.dirname(pretrained_path)}")
+    print(f"Downloaded and loaded pretrained weights to directory: {os.path.dirname(pretrained_path)}")
 
 model.load_state_dict(state_dict)
 
 def replace_swin_head(swin_model: nn.Module, out_dim: int) -> None:
     if not hasattr(swin_model, "head"):
-        raise AttributeError("当前 Swin 模型没有 head 属性，无法替换分类头。请检查 torchvision 版本/模型定义。")
+        raise AttributeError("Current Swin model has no head attribute; cannot replace classifier head. Please check torchvision version/model definition.")
 
     head = swin_model.head
 
@@ -139,14 +139,14 @@ def replace_swin_head(swin_model: nn.Module, out_dim: int) -> None:
     if isinstance(head, nn.Sequential):
         children = list(head.named_children())
         if len(children) == 0:
-            raise ValueError("head 是 Sequential 但没有子模块，无法替换分类头。")
+            raise ValueError("head is Sequential but has no submodules; cannot replace classifier head.")
         last_name, last_module = children[-1]
         if isinstance(last_module, nn.Linear):
             in_features = last_module.in_features
             setattr(head, last_name, nn.Linear(in_features, out_dim))
             return
 
-    raise ValueError("未能识别 Swin 分类头结构（head），无法自动替换，请把模型结构打印出来再改。")
+    raise ValueError("Unrecognized Swin classifier head structure (head); cannot replace automatically. Print model structure and modify manually.")
 
 replace_swin_head(model, num_classes)
 
@@ -243,8 +243,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
         print()
 
     time_elapsed = time.time() - since
-    print(f'Training完成于 {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
-    print(f'最佳验证准确率: {best_acc:.4f}')
+    print(f'Training completed in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
+    print(f'Best validation accuracy: {best_acc:.4f}')
 
     # Load best model weights before returning
     model.load_state_dict(best_model_wts)
@@ -281,7 +281,7 @@ def evaluate_model(model, dataloader):
 os.makedirs('saved_models', exist_ok=True)
 
 # Train model
-print("开始Train model...")
+print("Starting model training...")
 model, history = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs=num_epochs)
 
 # Save final model
@@ -290,4 +290,4 @@ torch.save(model.state_dict(), 'saved_models/final_model.pth')
 # Evaluate model
 print("Evaluate model...")
 val_accuracy, cm, all_preds, all_labels = evaluate_model(model, val_loader)
-print(f"验证集准确率: {val_accuracy:.4f}")
+print(f"Validation accuracy: {val_accuracy:.4f}")

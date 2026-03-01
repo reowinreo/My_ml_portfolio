@@ -19,9 +19,9 @@ np.random.seed(42)
 data_dir = 'dataset_raw'
 
 # Training hyperparameters
-batch_size = 50  # VGGNet-16的批大小
+batch_size = 50  # VGGNet-16 batch size
 num_epochs = 119
-num_classes = 45  # NWPU-RESISC45有45个类别
+num_classes = 45  # NWPU-RESISC45has 45 classes
 
 # Data preprocessing
 data_transforms = {
@@ -57,7 +57,7 @@ class TransformedDataset(torch.utils.data.Dataset):
 
 # Helper function for this experiment module
 def create_datasets(data_dir, train_ratio=0.2):
-    """创建训练和验证数据集，按照论文使用20%训练，80%验证的比例"""
+    """Create train/validation datasets using the 20% train / 80% validation split from the paper"""
     full_dataset = datasets.ImageFolder(data_dir)
 
     class_indices = {}
@@ -94,8 +94,8 @@ val_loader = torch.utils.data.DataLoader(
     val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
 dataset_sizes = {'train': len(train_dataset), 'val': len(val_dataset)}
-print(f"Training集大小: {dataset_sizes['train']}")
-print(f"验证集大小: {dataset_sizes['val']}")
+print(f"Training set size: {dataset_sizes['train']}")
+print(f"Validation set size: {dataset_sizes['val']}")
 
 # Load pretrained VGG16 model
 print("Load pretrained VGG16 model...")
@@ -105,9 +105,9 @@ model = models.vgg16(pretrained=False)
 pretrained_path = 'pretrained_models/vgg16-397923af.pth'
 if os.path.exists(pretrained_path):
     model.load_state_dict(torch.load(pretrained_path))
-    print(f"已Load pretrained weights: {pretrained_path}")
+    print(f"Loaded pretrained weights: {pretrained_path}")
 else:
-    print("警告: 未找到预Training权重文件，将使用随机初始化的权重")
+    print("Warning: pretrained weights file not found; using randomly initialized weights")
 
 num_features = model.classifier[6].in_features
 model.classifier[6] = nn.Linear(num_features, num_classes)
@@ -191,8 +191,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
         print()
 
     time_elapsed = time.time() - since
-    print(f'Training完成于 {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
-    print(f'最佳验证准确率: {best_acc:.4f}')
+    print(f'Training completed in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
+    print(f'Best validation accuracy: {best_acc:.4f}')
 
     # Load best model weights before returning
     model.load_state_dict(best_model_wts)
@@ -227,7 +227,7 @@ def evaluate_model(model, dataloader):
 os.makedirs('saved_models', exist_ok=True)
 
 # Train model
-print("开始Train model...")
+print("Starting model training...")
 model, history = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs=num_epochs)
 
 # Save final model
@@ -237,6 +237,6 @@ torch.save(model.state_dict(), 'saved_models/final_model.pth')
 # Evaluate model
 print("Evaluate model...")
 val_accuracy, cm, all_preds, all_labels = evaluate_model(model, val_loader)
-print(f"验证集准确率: {val_accuracy:.4f}")
+print(f"Validation accuracy: {val_accuracy:.4f}")
 
 

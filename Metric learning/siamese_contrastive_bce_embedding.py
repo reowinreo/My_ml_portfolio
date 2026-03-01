@@ -12,8 +12,8 @@ import torch.nn.functional as F
 def load_data(X_path, y_path, num_channels=4):
     X = np.loadtxt(X_path, delimiter=",")
     y = np.loadtxt(y_path, delimiter=",")
-    X = X.reshape(-1, num_channels, 28, 28)  # SAT-6 每张图 28x28
-    y = np.argmax(y, axis=1)  # one-hot 转为类别索引
+    X = X.reshape(-1, num_channels, 28, 28)  # SAT-6 per image 28x28
+    y = np.argmax(y, axis=1)  # one-hot to class indices
     return X, y
 
 
@@ -151,7 +151,7 @@ def extract_features(model, X, device):
     with torch.no_grad():
         for i in range(0, len(X), 128):
             batch = torch.tensor(X[i:i + 128], dtype=torch.float32).to(device)
-            f = model.branch(batch)  # 已在 forward 里归一化
+            f = model.branch(batch)  # already normalized in forward
             features.append(f.cpu().numpy())
     return np.vstack(features)
 

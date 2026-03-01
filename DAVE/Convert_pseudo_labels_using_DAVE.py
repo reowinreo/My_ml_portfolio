@@ -75,7 +75,7 @@ def _pseudo_txt(split: str) -> Path:
 
 
 def load_pseudo_txt(txt_path: Path) -> Dict[str, List[List[float]]]:
-    """伪标签 txt -> {image_name: [[x1,y1,x2,y2], ...]}"""
+    """Pseudo-label txt -> {image_name: [[x1,y1,x2,y2], ...]}"""
     boxes_by_img: Dict[str, List[List[float]]] = {}
     if not txt_path.is_file():
         raise FileNotFoundError(f"Pseudo label file not found: {txt_path}")
@@ -109,7 +109,7 @@ def resize(img: Image.Image, img_size: int):
 
 
 def _pick_exemplars_xyxy(boxes: List[List[float]], k: int) -> torch.Tensor:
-    """从伪标签框里选 k 个 exemplar（xyxy 原图像素坐标），返回 (1,k,4)。"""
+    """Select k exemplars from pseudo-label boxes (xyxy in original image pixel coordinates), return (1,k,4)."""
     if k <= 0:
         return torch.zeros((1, 3, 4), dtype=torch.float32)
 
