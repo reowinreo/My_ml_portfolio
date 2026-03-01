@@ -383,5 +383,5 @@ test_acc, cm, all_preds, all_labels = evaluate_model_logits(student_wrap, test_l
 print(f"Test accuracy: {test_acc:.4f}")
 
 # Save final model
-torch.save(student_wrap.state_dict(), 'saved_models/一二阶段distilled_feature_student_final_model.pth')
+torch.save(student_wrap.state_dict(), 'saved_models/stage1_stage2_distilled_feature_student_final_model.pth')
 print("All done.")

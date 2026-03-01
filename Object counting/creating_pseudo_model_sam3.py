@@ -42,11 +42,11 @@ from sam3.model.box_ops import box_xywh_to_cxcywh
 # Helper function for this experiment module
 def build_sam3_processor():
     if not os.path.exists(SAM3_CHECKPOINT_PATH):
-        raise FileNotFoundError(f"SAM3 权重不存在: {SAM3_CHECKPOINT_PATH}")
-    print("[Model] 加载 SAM3 模型 ...")
+        raise FileNotFoundError(f"SAM3 checkpoint not found: {SAM3_CHECKPOINT_PATH}")
+    print("[Model] Loading SAM3 model ...")
     model = build_sam3_image_model(checkpoint_path=SAM3_CHECKPOINT_PATH, load_from_HF=False, device=str(DEVICE).split(":")[0])
     processor = Sam3Processor(model, confidence_threshold=SAM3_CONFIDENCE_THRESHOLD)
-    print("[Model] SAM3 Processor 初始化完成")
+    print("[Model] SAM3 Processor initialized")
     return processor
 
 def _to_numpy(x):

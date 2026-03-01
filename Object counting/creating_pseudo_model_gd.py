@@ -23,7 +23,7 @@ def _load_local_gd():
     try:
         from transformers import AutoProcessor, GroundingDinoForObjectDetection
     except ImportError as e:
-        raise ImportError("未能导入 transformers。请先安装：pip install -U transformers") from e
+        raise ImportError("Failed to import transformers. Please install first: pip install -U transformers") from e
     _GD_DEVICE_STR = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[GD] Loading local GroundingDINO: {GDINO_MODEL_ID} | device={_GD_DEVICE_STR}")
     _GD_PROCESSOR = AutoProcessor.from_pretrained(GDINO_MODEL_ID)

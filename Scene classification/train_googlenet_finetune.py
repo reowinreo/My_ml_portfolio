@@ -81,7 +81,7 @@ def create_datasets(data_dir, train_ratio=0.1):
     return train_dataset, val_dataset, full_dataset.classes
 
 
-print("创建数据集...")
+print("Creating datasets...")
 train_dataset, val_dataset, class_names = create_datasets(data_dir, train_ratio=0.1)
 
 train_loader = torch.utils.data.DataLoader(
@@ -90,17 +90,17 @@ val_loader = torch.utils.data.DataLoader(
     val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
 dataset_sizes = {'train': len(train_dataset), 'val': len(val_dataset)}
-print(f"训练集大小: {dataset_sizes['train']}")
-print(f"验证集大小: {dataset_sizes['val']}")
+print(f"Train set size: {dataset_sizes['train']}")
+print(f"Validation set size: {dataset_sizes['val']}")
 
 # Compute epoch count
 train_samples = dataset_sizes['train']
 target_iterations = 15000
 num_epochs = 119
-print(f"使用 {num_epochs} 个 epoch ≈ 15000 iterations")
+print(f"Using {num_epochs} epochs ≈ 15000 iterations")
 
 # Load model
-print("加载预训练GoogLeNet模型...")
+print("Loading pretrained GoogLeNet model...")
 model = models.googlenet(pretrained=False, aux_logits=False)
 num_features = model.fc.in_features
 model.fc = nn.Linear(num_features, num_classes)
@@ -110,9 +110,9 @@ if os.path.exists(pretrained_path):
     state_dict = torch.load(pretrained_path, map_location="cpu")
     state_dict = {k: v for k, v in state_dict.items() if 'fc' not in k}
     model.load_state_dict(state_dict, strict=False)
-    print(f"已加载预训练权重: {pretrained_path}")
+    print(f"Loaded pretrained weights: {pretrained_path}")
 else:
-    print("警告: 未找到预训练权重文件，将使用随机初始化的权重")
+    print("Warning: pretrained weights file not found; using randomly initialized weights")
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
@@ -125,8 +125,8 @@ fc_param_ids = {id(p) for p in fc_params}
 base_params = [p for p in model.parameters() if id(p) not in fc_param_ids]
 
 optimizer = optim.SGD([
-    {'params': base_params, 'lr': 1e-5},   # 初始 lr=1e-5
-    {'params': fc_params, 'lr': 1e-2}      # 初始 lr=1e-2
+    {'params': base_params, 'lr': 1e-5},   # initial lr=1e-5
+    {'params': fc_params, 'lr': 1e-2}      # initial lr=1e-2
 ], momentum=0.9, weight_decay=5e-4)
 
 def lr_lambda_base(epoch):
@@ -134,12 +134,12 @@ def lr_lambda_base(epoch):
     if epoch < 10:
         return (1e-5 + (1e-3 - 1e-5) * (epoch / 9)) / 1e-5
     else:
-        return 1e-3 / 1e-5  # 保持在1e-3
+        return 1e-3 / 1e-5  # keep at 1e-3
 
 def lr_lambda_fc(epoch):
     # Linearly decrease FC LR from 1e-2 to 1e-4 in final 10 epochs
     if epoch < num_epochs - 10:
-        return 1.0  # 保持在1e-2
+        return 1.0  # keep at 1e-2
     else:
         progress = (epoch - (num_epochs - 10)) / 9
         target = 1e-2 + (1e-4 - 1e-2) * progress
@@ -201,11 +201,11 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=num_epochs):
 
         # Update learning rate
         scheduler.step()
-        print(f"当前学习率: {[group['lr'] for group in optimizer.param_groups]}")
+        print(f"Current learning rates: {[group['lr'] for group in optimizer.param_groups]}")
 
     time_elapsed = time.time() - since
-    print(f'训练完成于 {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
-    print(f'最佳验证准确率: {best_acc:.4f}')
+    print(f'Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
+    print(f'Best validation accuracy: {best_acc:.4f}')
 
     model.load_state_dict(best_model_wts)
     return model, history
@@ -229,12 +229,12 @@ def evaluate_model(model, dataloader):
 
 def freeze_layers(model, freeze_until="inception3b"):
     """
-    冻结 GoogLeNet 的部分层参数。
+    Freeze parameters of part of GoogLeNet layers.
     """
     freeze_list = ["conv1", "conv2", "inception3a", "inception3b"]
 
     if freeze_until not in freeze_list:
-        raise ValueError(f"freeze_until 必须是 {freeze_list} 之一")
+        raise ValueError(f"freeze_until must be one of {freeze_list}")
     stop_idx = freeze_list.index(freeze_until)
 
     for name in freeze_list[:stop_idx+1]:
@@ -242,19 +242,19 @@ def freeze_layers(model, freeze_until="inception3b"):
         for param in layer.parameters():
             param.requires_grad = False
 
-    print(f"已冻结层: {freeze_list[:stop_idx+1]}")
+    print(f"Frozen layers: {freeze_list[:stop_idx+1]}")
 
 
 os.makedirs('saved_models', exist_ok=True)
 freeze_layers(model, freeze_until="inception3b")
 
-print("开始训练模型...")
+print("Starting model training...")
 model, history = train_model(model, criterion, optimizer, scheduler, num_epochs=num_epochs)
 
 torch.save(model.state_dict(), 'saved_models/final_model.pth')
 
 
-print("评估模型...")
+print("Evaluating model...")
 val_acc, cm, all_preds, all_labels = evaluate_model(model, val_loader)
-print(f"验证集准确率: {val_acc:.4f}")
+print(f"Validation accuracy: {val_acc:.4f}")
 
