@@ -1,22 +1,29 @@
 # ML Portfolio
 
-This repository is a personal portfolio of machine learning experiments I completed during my undergraduate study.
+This repository is a personal portfolio of machine-learning experiments I completed during my undergraduate study.
 It is **not** intended to be a production-ready or deployable software project.
 
 ## What this repository demonstrates
 
-- **Scene Classification**: fine-tuning classic and transformer backbones on remote-sensing scene datasets.
-- **Knowledge Distillation**: teacher-student pipelines (e.g., ResNet152 -> ResNet50) with multiple KD variants.
-- **Metric Learning**: Siamese/Triplet embedding learning followed by SVM evaluation.
-- **Object Counting / Pseudo Labels**: pseudo-label generation and counting-oriented pipelines with custom utilities.
-- **DAVE-based Conversion**: scripts for converting pseudo labels with DAVE-style inference flows.
+- **Remote-sensing Scene Classification Based on Deep Learning**
+  - Feature extraction with classical CNNs followed by SVM classification.
+  - End-to-end fine-tuning of GoogLeNet, VGG16, Swin-T, and ViT-B/16.
+  - Metric learning for aerial-image classification (Siamese / Triplet embeddings).
+  - Learning-to-rank multi-label classification and counting (R4C-style).
+
+- **Knowledge Distillation Based on Learning to Rank**
+  - Teacher-student distillation for scene classification (ResNet152 → ResNet50).
+  - Multiple distillation losses: DKD, logit MSE, cosine similarity, feature distillation, PCA-projected features.
+  - Studies on loss-weight hyperparameters: manual weights, uncertainty-based dynamic weighting, and hard-label participation.
+  - Learning-to-rank weighting for multi-task ranking-density training.
+
+- **DAVE-based Conversion**
+  - Scripts for converting pseudo labels with a DAVE-style inference flow.
 
 ## Repository structure
 
-- `Scene classification/` — scene classification training scripts (GoogLeNet, VGG16, ViT-B/16, Swin-T).
-- `Knowledge distillation/` — teacher training and several distillation strategies.
-- `Metric learning/` — embedding-learning pipelines and downstream SVM experiments.
-- `Object counting/` — pseudo dataset/model helpers and counting backbone components.
+- `Remote-sensing Scene Classification Based on Deep Learning/` — scene classification experiments.
+- `Knowledge Distillation Based on Learning to Rank/` — knowledge distillation and ranking/counting experiments.
 - `DAVE/` — conversion script for pseudo labels using a DAVE workflow.
 
 Each subfolder contains its own `README.md` with script-level explanations.

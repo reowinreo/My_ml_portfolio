@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Datasets and checkpoints (do not upload large files)
+dataset_raw/
+dataset/
+saved_models/
+pretrained_models/
+*.pth
+*.pt
+*.ckpt
+*.h5
+*.npy
+*.npz
+
+# Pseudo labels and outputs
+pseudo_labels/
+local pseudo/
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+wandb/
+runs/
+
+# Temporary helper scripts (used only during migration)
+_*.py
+_*.json
+_*.txt
