@@ -12,19 +12,25 @@ It is **not** intended to be a production-ready or deployable software project.
   - Learning-to-rank multi-label classification and counting (R4C-style).
 
 - **Knowledge Distillation Based on Learning to Rank**
-  - Teacher-student distillation for scene classification (ResNet152 → ResNet50).
+  - Teacher-student distillation for scene classification (ResNet152 -> ResNet50).
   - Multiple distillation losses: DKD, logit MSE, cosine similarity, feature distillation, PCA-projected features.
   - Studies on loss-weight hyperparameters: manual weights, uncertainty-based dynamic weighting, and hard-label participation.
   - Learning-to-rank weighting for multi-task ranking-density training.
 
-- **DAVE-based Conversion**
+- **Remote-sensing Object Counting via Foundation Models**
+  - Few-shot object counting for remote-sensing images using Grounding DINO and SAM 3.
+  - Pseudo-label generation, ranking-based counting networks, and density-map regression.
+  - Backbones: ALT-GVT, CBAM, and VGG16; evaluation via ranking metrics and MAE/RMSE.
+
+- **DAVE-based Conversion (utility)**
   - Scripts for converting pseudo labels with a DAVE-style inference flow.
 
 ## Repository structure
 
-- `Remote-sensing Scene Classification Based on Deep Learning/` — scene classification experiments.
-- `Knowledge Distillation Based on Learning to Rank/` — knowledge distillation and ranking/counting experiments.
-- `DAVE/` — conversion script for pseudo labels using a DAVE workflow.
+- `Remote-sensing Scene Classification Based on Deep Learning/` - scene classification experiments.
+- `Knowledge Distillation Based on Learning to Rank/` - knowledge distillation and ranking/counting experiments.
+- `Remote-sensing Object Counting via Foundation Models/` - few-shot object counting with foundation models.
+- `DAVE/` - conversion script for pseudo labels using a DAVE workflow.
 
 Each subfolder contains its own `README.md` with script-level explanations.
 
